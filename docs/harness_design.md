@@ -5,7 +5,7 @@ one maps to a specific file or mechanism below.
 
 | Req | Intent | Where it lives |
 |---|---|---|
-| **R5** — measurement is harness-owned, params pinned | `harness/metrics/bench.py`, `harness/eval/aime_runner.py`, params in `configs/pinned.yaml`. Edits to these paths are blocked by `.claude/settings.json` + `harness/policy/check_edit.py`. |
+| **R5** — measurement is harness-owned, params pinned | `harness/metrics/bench.py`, `harness/eval/aime_runner.py`, params in `configs/pinned.yaml`. AIME params are pinned to MathArena protocol (n=4, T=0.6, top_p=0.95, max_tokens=64000, ctx=72000, Gemma 4 chat template, balanced-brace `\boxed`/`\fbox` extractor with `strict_parsing=false` fallback). Edits to these paths are blocked by `.claude/settings.json` + `harness/policy/check_edit.py`. |
 | **R6** — artifact ↔ intent verifier | `harness/verify/run.py` cross-checks `trials/<id>/intent.yaml` against `config.json`, weight sizes, and bit width. Writes `verify.json`; non-PASS blocks downstream. |
 | **R7** — allowed/forbidden paths as execution policy | `harness/policy/check_bash.py` (PreToolUse on Bash) blocks pre-quantized downloads, ad-hoc `.generate()` measurement, and multi-GPU measurement. Override for non-measurement-path violations requires `ALLOW_POLICY_OVERRIDE=<reason>`, which is appended to `harness/ledger/overrides.log`. |
 | **R8** — trial → auto-verify → block pipeline | `harness/policy/on_stop.py` (Stop hook) runs verify on any trial with fresh artifacts. `scripts/make_report.py` refuses to emit a report if any verify FAIL or any priority-1 checklist item is unresolved. |

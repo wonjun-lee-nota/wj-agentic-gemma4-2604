@@ -24,19 +24,35 @@ metrics:
 
 eval:
   benchmark: AIME_2026_no_tools
-  protocol: matharena_boxed_majority
-  sample_n: 4
-  max_tokens: 32768
+  protocol: matharena_per_sample_pass_rate
+  dataset: MathArena/aime_2026          # AIME-I + AIME-II, 30 problems
+  n_problems: 30
+  sample_n: 4                           # n samples per problem (total attempts = 120)
+  max_tokens: 64000
+  ctx_size: 72000
   temperature: 0.6
   top_p: 0.95
+  top_k: null                           # unset
   seed: 20260420
   dtype: bfloat16
   attn_implementation: sdpa
+  chat_template: gemma_default          # tokenizer.apply_chat_template (thinking auto-included)
+  strict_parsing: false
+  # Extraction order:
+  #   (1) balanced-brace \boxed{...} / \fbox{...} — parse as integer ∈ [0, 999]
+  #   (2) if strict_parsing == false: last \b\d+\b in text tail, ∈ [0, 999]
+  extraction:
+    boxed_markers: ["\\boxed", "\\fbox"]
+    answer_range: [0, 999]
+    fallback_last_integer: true         # active iff strict_parsing == false
+  # Score = correct / (n_problems * sample_n). Report surfaces as percent; the
+  # gate compares the fraction directly.
+  scoring: per_sample_pass_rate
   prompt_template: |
-    Solve the following AIME problem. The answer is an integer between 000 and 999.
-    Put your final answer in \boxed{...}.
-
     {problem}
+
+    Put your final answer within \boxed{}.
+    The answer is an integer between 0 and 999 inclusive.
 
 quality_gate:
   aime_2026_no_tools_min: 0.853          # ≥ 85.3%

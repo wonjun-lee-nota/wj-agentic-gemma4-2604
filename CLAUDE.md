@@ -13,7 +13,8 @@ space.
 | Model | `google/gemma-4-26B-A4B-it` (MoE, ~26 B params) |
 | Deploy HW | 1 × NVIDIA RTX 3090 (24 GB) |
 | Quant workers | up to 4 × RTX 3090 (calibration / conversion only) |
-| Quality gate | AIME 2026 no-tools **≥ 85.3 %** |
+| Quality gate | AIME 2026 no-tools **≥ 85.3 %** (per-sample pass rate over 30 × 4) |
+| Eval protocol | MathArena/aime_2026 (I+II, 30 problems), n=4, T=0.6, top_p=0.95, max_tokens=64000, ctx=72000, Gemma 4 chat template |
 | Perf reported | TTFT, tokens/sec (128→128, batch=1), p50/p95 latency, weight_size |
 | Measurement policy | **20 runs, 5 warmup**, `CUDA_VISIBLE_DEVICES=0` |
 
