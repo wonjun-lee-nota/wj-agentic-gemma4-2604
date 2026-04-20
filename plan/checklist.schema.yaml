@@ -1,0 +1,30 @@
+# Schema for plan/checklist.yaml (R11).
+# The design agent writes checklist.yaml following this shape. The executor
+# agent updates `status` and `trial_id` as trials are run. Unrun priority-1
+# items surface in every report.
+
+version: 1
+baseline:
+  trial_id: string            # e.g. "t000_fp16_baseline"
+  aime_2026: float            # baseline accuracy
+
+candidates:
+  - id: string                # e.g. "awq_w4_g128"
+    method: string            # one of configs/pinned.yaml allowed_methods
+    bit_width: int
+    group_size: int | null
+    calibration_set: string
+    priority: 1 | 2 | 3       # 1 = must run, 2 = should run, 3 = optional
+    phase: 1 | 2 | 3          # phase of exploration
+    rationale: string         # why this candidate is on the list
+    status: pending | running | done | skipped | failed
+    trial_id: string | null   # filled when run
+    skip_reason: string | null  # required if status == skipped
+
+phases:
+  - id: 1
+    goal: string
+    exit_criteria: string
+  - id: 2
+    goal: string
+    exit_criteria: string

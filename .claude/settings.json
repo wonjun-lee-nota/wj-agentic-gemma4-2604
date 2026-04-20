@@ -1,0 +1,45 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(harness/**)",
+      "Write(harness/**)",
+      "NotebookEdit(harness/**)",
+      "Edit(configs/pinned.yaml)",
+      "Write(configs/pinned.yaml)",
+      "Edit(.claude/agents/evaluator.md)",
+      "Write(.claude/agents/evaluator.md)"
+    ],
+    "allow": [
+      "Read(harness/**)",
+      "Read(configs/**)",
+      "Bash(python -m harness.metrics.bench *)",
+      "Bash(python -m harness.eval.aime_runner *)",
+      "Bash(python -m harness.verify.run *)",
+      "Bash(make report)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          { "type": "command", "command": "python3 harness/policy/check_edit.py" }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "python3 harness/policy/check_bash.py" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": "python3 harness/policy/on_stop.py" }
+        ]
+      }
+    ]
+  }
+}

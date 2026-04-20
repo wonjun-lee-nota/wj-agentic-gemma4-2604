@@ -1,0 +1,78 @@
+# Sealed measurement / eval parameters (R5). Edits require ALLOW_HARNESS_EDIT
+# with a logged reason. The executor agent has no write access to this file.
+
+model:
+  id: google/gemma-4-26B-A4B-it
+  architecture: moe
+  params_billions: 26
+
+hardware:
+  measurement_device: "cuda:0"           # single RTX 3090 (24 GB)
+  measurement_visible_devices: "0"
+  quant_workers_visible_devices: "0,1,2,3"
+  gpu_name: NVIDIA GeForce RTX 3090
+  gpu_memory_gb: 24
+
+metrics:
+  input_tokens: 128
+  output_tokens: 128
+  batch_size: 1
+  warmup: 5
+  runs: 20
+  dtype: bfloat16
+  attn_implementation: sdpa
+
+eval:
+  benchmark: AIME_2026_no_tools
+  protocol: matharena_per_sample_pass_rate
+  dataset: MathArena/aime_2026          # AIME-I + AIME-II, 30 problems
+  n_problems: 30
+  sample_n: 4                           # n samples per problem (total attempts = 120)
+  max_tokens: 64000
+  ctx_size: 72000
+  temperature: 0.6
+  top_p: 0.95
+  top_k: null                           # unset
+  seed: 20260420
+  dtype: bfloat16
+  attn_implementation: sdpa
+  chat_template: gemma_default          # tokenizer.apply_chat_template (thinking auto-included)
+  strict_parsing: false
+  # Extraction order:
+  #   (1) balanced-brace \boxed{...} / \fbox{...} — parse as integer ∈ [0, 999]
+  #   (2) if strict_parsing == false: last \b\d+\b in text tail, ∈ [0, 999]
+  extraction:
+    boxed_markers: ["\\boxed", "\\fbox"]
+    answer_range: [0, 999]
+    fallback_last_integer: true         # active iff strict_parsing == false
+  # Score = correct / (n_problems * sample_n). Report surfaces as percent; the
+  # gate compares the fraction directly.
+  scoring: per_sample_pass_rate
+  prompt_template: |
+    {problem}
+
+    Put your final answer within \boxed{}.
+    The answer is an integer between 0 and 999 inclusive.
+
+quality_gate:
+  aime_2026_no_tools_min: 0.853          # ≥ 85.3%
+  degradation_budget_abs: 0.000          # baseline-tied budget (0 means absolute floor)
+  # If a baseline trial is registered, the executor can register a drop budget
+  # here (e.g. 0.030 for ≤3% drop) via design-agent-written configs/budget.yaml.
+
+allowed_methods:
+  # Whitelist — design agent must propose; anything else requires a checklist
+  # entry marked "experimental" with explicit justification.
+  - gptq
+  - awq
+  - hqq
+  - smoothquant
+  - bitsandbytes_nf4
+  - fp8_marlin
+  - autoround
+
+forbidden:
+  - download_pre_quantized_checkpoint     # R7
+  - measurement_via_hf_generate           # R7 (except for AIME eval inside harness)
+  - multi_gpu_measurement                 # R7
+  - cross_trial_metric_copy               # R9
