@@ -1,0 +1,62 @@
+# Sealed measurement / eval parameters (R5). Edits require ALLOW_HARNESS_EDIT
+# with a logged reason. The executor agent has no write access to this file.
+
+model:
+  id: google/gemma-4-26B-A4B-it
+  architecture: moe
+  params_billions: 26
+
+hardware:
+  measurement_device: "cuda:0"           # single RTX 3090 (24 GB)
+  measurement_visible_devices: "0"
+  quant_workers_visible_devices: "0,1,2,3"
+  gpu_name: NVIDIA GeForce RTX 3090
+  gpu_memory_gb: 24
+
+metrics:
+  input_tokens: 128
+  output_tokens: 128
+  batch_size: 1
+  warmup: 5
+  runs: 20
+  dtype: bfloat16
+  attn_implementation: sdpa
+
+eval:
+  benchmark: AIME_2026_no_tools
+  protocol: matharena_boxed_majority
+  sample_n: 4
+  max_tokens: 32768
+  temperature: 0.6
+  top_p: 0.95
+  seed: 20260420
+  dtype: bfloat16
+  attn_implementation: sdpa
+  prompt_template: |
+    Solve the following AIME problem. The answer is an integer between 000 and 999.
+    Put your final answer in \boxed{...}.
+
+    {problem}
+
+quality_gate:
+  aime_2026_no_tools_min: 0.853          # ≥ 85.3%
+  degradation_budget_abs: 0.000          # baseline-tied budget (0 means absolute floor)
+  # If a baseline trial is registered, the executor can register a drop budget
+  # here (e.g. 0.030 for ≤3% drop) via design-agent-written configs/budget.yaml.
+
+allowed_methods:
+  # Whitelist — design agent must propose; anything else requires a checklist
+  # entry marked "experimental" with explicit justification.
+  - gptq
+  - awq
+  - hqq
+  - smoothquant
+  - bitsandbytes_nf4
+  - fp8_marlin
+  - autoround
+
+forbidden:
+  - download_pre_quantized_checkpoint     # R7
+  - measurement_via_hf_generate           # R7 (except for AIME eval inside harness)
+  - multi_gpu_measurement                 # R7
+  - cross_trial_metric_copy               # R9

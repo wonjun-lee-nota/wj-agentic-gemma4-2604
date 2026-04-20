@@ -1,0 +1,12 @@
+# Schema for trials/<id>/intent.yaml — written by the executor agent before
+# running metrics/eval. The verifier (R6) cross-checks these against the
+# produced config.json / weight sizes.
+
+trial_id: string               # must equal the directory name
+method: string                 # from configs/pinned.yaml allowed_methods
+bit_width: int
+group_size: int | null
+calibration_set: string        # description of calibration data & size
+quant_target: string           # e.g. "attention+mlp", "mlp-only", "experts-only"
+engine: string                 # "transformers", "vllm", "auto-gptq", "autoawq", ...
+notes: string                  # free-form rationale

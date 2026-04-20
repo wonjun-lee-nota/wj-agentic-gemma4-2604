@@ -1,0 +1,15 @@
+# Harness private key — generated per-repo, never committed.
+harness/common/.harness_key
+
+# Trial artifacts are large; track only the manifest files, not weights.
+trials/*/weights/
+trials/*/*.safetensors
+trials/*/*.bin
+trials/*/*.gguf
+trials/*/*.pt
+
+# Python / tool caches
+__pycache__/
+*.pyc
+.venv/
+.env
