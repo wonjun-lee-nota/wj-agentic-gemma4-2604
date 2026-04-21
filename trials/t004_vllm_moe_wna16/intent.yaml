@@ -1,0 +1,12 @@
+trial_id: t004_vllm_moe_wna16
+method: gptq
+bit_width: 4
+group_size: 128
+calibration_set: c4
+quant_target: all_linear_including_moe_via_vllm_moe_wna16
+notes: >
+  Uses t001 GPTQ-quantized model (attention layers quantized) and loads via
+  vLLM with quantization="moe_wna16" which applies W4A16 quantization to
+  MoE expert layers at load time. This bypasses the fused 3D tensor limitation
+  of standard PTQ libraries.
+engine: vllm

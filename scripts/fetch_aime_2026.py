@@ -49,7 +49,7 @@ def main() -> int:
     # named differently across releases; map the common variants.
     normalized: list[dict] = []
     for r in rows:
-        pid = r.get("id") or r.get("problem_id") or r.get("name")
+        pid = r.get("id") or r.get("problem_id") or r.get("problem_idx") or r.get("name")
         prob = r.get("problem") or r.get("question") or r.get("prompt")
         ans = r.get("answer") or r.get("gold") or r.get("solution")
         if pid is None or prob is None or ans is None:
