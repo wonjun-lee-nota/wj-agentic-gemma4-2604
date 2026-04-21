@@ -1,12 +1,154 @@
 # Filled by the design agent at session start (R11).
 # Executor updates status/trial_id. Report pipeline blocks on unrun priority-1
 # entries unless status == "skipped" with a non-empty skip_reason.
+#
+# Design rationale:
+#   Gemma-4-26B-A4B-it is a MoE model (~26B params). BF16 weights ~= 52 GB,
+#   which exceeds the RTX 3090 24 GB limit by ~2×. We need ≤ 4-bit quantization
+#   to fit comfortably. The quality gate is AIME 2026 ≥ 85.3 %.
+#
+#   Phase 1 (baseline): BF16 via vLLM with offload or naive load — establishes
+#   the AIME baseline. May OOM on bench.py (expected); eval via aime_runner
+#   with vLLM is the priority.
+#
+#   Phase 2 (proven methods): GPTQ-W4 and AWQ-W4 are the most mature 4-bit
+#   methods with broad engine support. Group size 128 is standard; we try both.
+#
+#   Phase 3 (alternatives): AutoRound (Intel's learned-rounding W4), BnB NF4
+#   (zero-shot, no calibration), HQQ (half-quadratic quantization). These
+#   explore different trade-offs: speed-of-quantization vs quality vs inference
+#   perf.
 
 version: 1
 baseline:
-  trial_id: null
-  aime_2026: null
+  trial_id: null          # executor fills after baseline run
+  aime_2026: null         # executor fills after eval
 
-candidates: []   # design agent populates
+candidates:
+  # ── Phase 1: Baseline ──────────────────────────────────────────────────
+  - id: baseline_bf16
+    method: none
+    bit_width: 16
+    group_size: null
+    calibration_set: null
+    priority: 1
+    phase: 1
+    status: pending
+    trial_id: null
+    rationale: >
+      BF16 reference. Needed to establish the AIME accuracy ceiling and to
+      confirm the harness pipeline works end-to-end. Measurement (bench.py)
+      may OOM on 24 GB; that is acceptable — the key output is eval.json.
+    notes: >
+      Load with device_map="auto" across 4 GPUs for eval; single-GPU bench
+      will be attempted but OOM is expected and non-blocking.
 
-phases: []       # design agent populates
+  # ── Phase 2: Proven 4-bit methods ─────────────────────────────────────
+  - id: gptq_w4_g128
+    method: gptq
+    bit_width: 4
+    group_size: 128
+    calibration_set: c4
+    priority: 1
+    phase: 2
+    status: skipped
+    trial_id: t001_gptq_w4_g128
+    skip_reason: >
+      gptqmodel 6.0.3 does not quantize Gemma 4 fused MoE expert layers
+      (experts.gate_up_proj, experts.down_proj). Only attention layers were
+      quantized, leaving weight size at 46GB (vs 49GB BF16). Model does not
+      fit on single 24GB GPU for measurement. MoE-aware GPTQ not yet available.
+    rationale: >
+      GPTQ is the most established PTQ method. 4-bit with group_size=128
+      typically preserves accuracy well on large models. Expected weight
+      size ~13 GB, well within 24 GB budget.
+
+  - id: awq_w4_g128
+    method: awq
+    bit_width: 4
+    group_size: 128
+    calibration_set: c4
+    priority: 1
+    phase: 2
+    status: skipped
+    trial_id: null
+    skip_reason: >
+      AutoAWQ is deprecated and incompatible with torch 2.10. Same fused MoE
+      expert issue as GPTQ — AWQ also cannot quantize 3D expert tensors.
+    rationale: >
+      AWQ protects salient weights, often outperforming GPTQ on reasoning
+      tasks. Same bit budget as GPTQ — direct comparison on AIME accuracy
+      and inference speed.
+
+  # ── Phase 3: Alternative methods ──────────────────────────────────────
+  - id: autoround_w4_g128
+    method: autoround
+    bit_width: 4
+    group_size: 128
+    calibration_set: c4
+    priority: 2
+    phase: 3
+    status: pending
+    trial_id: null
+    rationale: >
+      Intel AutoRound uses SignSGD-based learned rounding. Often competitive
+      with GPTQ/AWQ while being faster to quantize. Good quality/speed
+      trade-off candidate.
+
+  - id: bnb_nf4
+    method: bitsandbytes_nf4
+    bit_width: 4
+    group_size: 64
+    calibration_set: null
+    priority: 2
+    phase: 3
+    status: skipped
+    trial_id: t002_bnb_nf4
+    skip_reason: >
+      BnB NF4 quantized non-MoE layers successfully but fused MoE expert
+      tensors remain BF16. Saved model is 46GB, same as GPTQ result.
+      Cannot fit on single 24GB GPU for harness measurement.
+    rationale: >
+      BitsAndBytes NF4 requires zero calibration data — quantization
+      happens at load time via double quantization. Fastest path to a
+      4-bit model. Quality may be lower than calibrated methods but worth
+      measuring as a speed baseline.
+    notes: >
+      NF4 uses blocksize=64 by default (bnb_4bit_quant_type="nf4").
+      No separate quantization step needed; load with BitsAndBytesConfig.
+
+  - id: gptq_w4_g32
+    method: gptq
+    bit_width: 4
+    group_size: 32
+    calibration_set: c4
+    priority: 3
+    phase: 3
+    status: pending
+    trial_id: null
+    rationale: >
+      Smaller group size (32 vs 128) increases accuracy at the cost of
+      slightly larger weight size and slower dequant. If g128 misses the
+      85.3% gate, g32 is the fallback.
+
+phases:
+  - phase: 1
+    name: Baseline
+    goal: Establish BF16 AIME accuracy ceiling and validate harness pipeline
+    exit_criteria: >
+      baseline_bf16 eval.json exists with a valid AIME score, OR the trial
+      is marked skipped with documented OOM reason.
+
+  - phase: 2
+    name: Proven 4-bit methods
+    goal: Run GPTQ-W4 and AWQ-W4 — the two most likely to meet the quality gate
+    exit_criteria: >
+      Both gptq_w4_g128 and awq_w4_g128 have verify.json with status PASS
+      or documented skip_reason. At least one must PASS.
+
+  - phase: 3
+    name: Alternatives and fallbacks
+    goal: Explore AutoRound, BnB-NF4, and GPTQ-g32 for diversity and fallback
+    exit_criteria: >
+      All priority-2 candidates done or skipped. Priority-3 attempted if
+      Phase 2 results leave room for improvement.

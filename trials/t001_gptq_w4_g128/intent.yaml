@@ -1,0 +1,11 @@
+trial_id: t001_gptq_w4_g128
+method: gptq
+bit_width: 4
+group_size: 128
+calibration_set: c4
+quant_target: all_linear
+notes: >
+  GPTQ W4 with group_size=128 on all linear layers.
+  Calibration: 128 samples from C4, seqlen=2048.
+  Quantization runs on up to 4 GPUs; measurement on single GPU.
+engine: transformers

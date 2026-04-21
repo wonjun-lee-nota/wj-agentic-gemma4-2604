@@ -1,0 +1,11 @@
+trial_id: t002_bnb_nf4
+method: bitsandbytes_nf4
+bit_width: 4
+group_size: 64
+calibration_set: null
+quant_target: all_linear
+notes: >
+  BitsAndBytes NF4 double quantization. Zero-shot (no calibration data).
+  Quantization happens at load time via BitsAndBytesConfig.
+  blocksize=64, bnb_4bit_quant_type=nf4, bnb_4bit_use_double_quant=True.
+engine: transformers
