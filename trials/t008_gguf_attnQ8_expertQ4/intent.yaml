@@ -1,0 +1,11 @@
+trial_id: t008_gguf_attnQ8_expertQ4
+method: gptq
+bit_width: 4
+group_size: 128
+calibration_set: null
+quant_target: attention_q8_moe_q4_custom_layer_mix
+notes: >
+  Custom layer-wise GGUF: attention layers (q/k/v/o_proj) at Q8_0 for
+  precision, MoE expert layers at Q4_K for compression. ~17GB total.
+  Hypothesis: attention precision is critical for multi-step math reasoning.
+engine: llama.cpp

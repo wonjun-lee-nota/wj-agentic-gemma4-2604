@@ -1,0 +1,11 @@
+trial_id: t007_gguf_q4km_imatrix
+method: gptq
+bit_width: 4
+group_size: 128
+calibration_set: c4
+quant_target: all_params_via_gguf_q4_k_m_imatrix
+notes: >
+  GGUF Q4_K_M with importance matrix (imatrix) calibration from 256 C4 samples.
+  imatrix guides quantization to preserve important weights at higher precision.
+  Same 16GB size as t006 but better weight allocation.
+engine: llama.cpp
