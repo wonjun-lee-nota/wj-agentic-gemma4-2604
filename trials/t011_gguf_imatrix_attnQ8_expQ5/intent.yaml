@@ -1,0 +1,11 @@
+trial_id: t011_gguf_imatrix_attnQ8_expQ5
+method: gptq
+bit_width: 4
+group_size: 128
+calibration_set: c4
+quant_target: imatrix_attnQ8_gate_up_exps_q5k
+notes: >
+  Strategy L: Maximum budget utilization. imatrix + attention Q8_0 + all MoE
+  gate_up_exps upgraded from Q4_K to Q5_K. ~18.4GB. Largest precision upgrade
+  among 1-GPU candidates.
+engine: llama.cpp

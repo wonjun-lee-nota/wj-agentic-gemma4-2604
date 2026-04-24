@@ -1,0 +1,746 @@
+{
+  "trial_id": "t007_gguf_q4km_imatrix",
+  "engine": "llama.cpp",
+  "benchmark": "AIME_2026_no_tools",
+  "protocol": "matharena_per_sample_pass_rate",
+  "dataset": "MathArena/aime_2026",
+  "pinned": {
+    "benchmark": "AIME_2026_no_tools",
+    "protocol": "matharena_per_sample_pass_rate",
+    "dataset": "MathArena/aime_2026",
+    "n_problems": 30,
+    "sample_n": 4,
+    "max_tokens": 64000,
+    "ctx_size": 72000,
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "top_k": null,
+    "seed": 20260420,
+    "dtype": "bfloat16",
+    "attn_implementation": "sdpa",
+    "chat_template": "gemma_default",
+    "strict_parsing": false,
+    "extraction": {
+      "boxed_markers": [
+        "\\boxed",
+        "\\fbox"
+      ],
+      "answer_range": [
+        0,
+        999
+      ],
+      "fallback_last_integer": true
+    },
+    "scoring": "per_sample_pass_rate",
+    "prompt_template": "{problem}\n\nPut your final answer within \\boxed{}.\nThe answer is an integer between 0 and 999 inclusive.\n"
+  },
+  "n_problems": 30,
+  "sample_n": 4,
+  "total_attempts": 120,
+  "total_correct": 107,
+  "accuracy": 0.8916666666666667,
+  "accuracy_percent": 89.16666666666667,
+  "pass_gate": true,
+  "gate_threshold": 0.853,
+  "per_problem": [
+    {
+      "id": "1",
+      "gold": 277,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 277,
+          "correct": true
+        },
+        {
+          "pred": 277,
+          "correct": true
+        },
+        {
+          "pred": 277,
+          "correct": true
+        },
+        {
+          "pred": 277,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "gold": 62,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 62,
+          "correct": true
+        },
+        {
+          "pred": 62,
+          "correct": true
+        },
+        {
+          "pred": 62,
+          "correct": true
+        },
+        {
+          "pred": 62,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "gold": 79,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 79,
+          "correct": true
+        },
+        {
+          "pred": 79,
+          "correct": true
+        },
+        {
+          "pred": 79,
+          "correct": true
+        },
+        {
+          "pred": 79,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "gold": 70,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 70,
+          "correct": true
+        },
+        {
+          "pred": 70,
+          "correct": true
+        },
+        {
+          "pred": 70,
+          "correct": true
+        },
+        {
+          "pred": 70,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "gold": 65,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 65,
+          "correct": true
+        },
+        {
+          "pred": 65,
+          "correct": true
+        },
+        {
+          "pred": 65,
+          "correct": true
+        },
+        {
+          "pred": 65,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "6",
+      "gold": 441,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 441,
+          "correct": true
+        },
+        {
+          "pred": 441,
+          "correct": true
+        },
+        {
+          "pred": 441,
+          "correct": true
+        },
+        {
+          "pred": 441,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "gold": 396,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 396,
+          "correct": true
+        },
+        {
+          "pred": 396,
+          "correct": true
+        },
+        {
+          "pred": 396,
+          "correct": true
+        },
+        {
+          "pred": 396,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "8",
+      "gold": 244,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 244,
+          "correct": true
+        },
+        {
+          "pred": 244,
+          "correct": true
+        },
+        {
+          "pred": 244,
+          "correct": true
+        },
+        {
+          "pred": 244,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "9",
+      "gold": 29,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 29,
+          "correct": true
+        },
+        {
+          "pred": 29,
+          "correct": true
+        },
+        {
+          "pred": 29,
+          "correct": true
+        },
+        {
+          "pred": 29,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "10",
+      "gold": 156,
+      "correct_samples": 2,
+      "samples": [
+        {
+          "pred": 156,
+          "correct": true
+        },
+        {
+          "pred": null,
+          "correct": false
+        },
+        {
+          "pred": 156,
+          "correct": true
+        },
+        {
+          "pred": null,
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "11",
+      "gold": 896,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 896,
+          "correct": true
+        },
+        {
+          "pred": 896,
+          "correct": true
+        },
+        {
+          "pred": 896,
+          "correct": true
+        },
+        {
+          "pred": 896,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "12",
+      "gold": 161,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 161,
+          "correct": true
+        },
+        {
+          "pred": 161,
+          "correct": true
+        },
+        {
+          "pred": 161,
+          "correct": true
+        },
+        {
+          "pred": 161,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "13",
+      "gold": 39,
+      "correct_samples": 3,
+      "samples": [
+        {
+          "pred": 39,
+          "correct": true
+        },
+        {
+          "pred": 39,
+          "correct": true
+        },
+        {
+          "pred": 49,
+          "correct": false
+        },
+        {
+          "pred": 39,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "14",
+      "gold": 681,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 681,
+          "correct": true
+        },
+        {
+          "pred": 681,
+          "correct": true
+        },
+        {
+          "pred": 681,
+          "correct": true
+        },
+        {
+          "pred": 681,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "15",
+      "gold": 83,
+      "correct_samples": 0,
+      "samples": [
+        {
+          "pred": null,
+          "correct": false
+        },
+        {
+          "pred": 500,
+          "correct": false
+        },
+        {
+          "pred": 81,
+          "correct": false
+        },
+        {
+          "pred": 625,
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "16",
+      "gold": 178,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 178,
+          "correct": true
+        },
+        {
+          "pred": 178,
+          "correct": true
+        },
+        {
+          "pred": 178,
+          "correct": true
+        },
+        {
+          "pred": 178,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "17",
+      "gold": 243,
+      "correct_samples": 3,
+      "samples": [
+        {
+          "pred": 243,
+          "correct": true
+        },
+        {
+          "pred": 243,
+          "correct": true
+        },
+        {
+          "pred": 243,
+          "correct": true
+        },
+        {
+          "pred": null,
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "18",
+      "gold": 503,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 503,
+          "correct": true
+        },
+        {
+          "pred": 503,
+          "correct": true
+        },
+        {
+          "pred": 503,
+          "correct": true
+        },
+        {
+          "pred": 503,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "19",
+      "gold": 279,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 279,
+          "correct": true
+        },
+        {
+          "pred": 279,
+          "correct": true
+        },
+        {
+          "pred": 279,
+          "correct": true
+        },
+        {
+          "pred": 279,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "20",
+      "gold": 190,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 190,
+          "correct": true
+        },
+        {
+          "pred": 190,
+          "correct": true
+        },
+        {
+          "pred": 190,
+          "correct": true
+        },
+        {
+          "pred": 190,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "21",
+      "gold": 50,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 50,
+          "correct": true
+        },
+        {
+          "pred": 50,
+          "correct": true
+        },
+        {
+          "pred": 50,
+          "correct": true
+        },
+        {
+          "pred": 50,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "22",
+      "gold": 754,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 754,
+          "correct": true
+        },
+        {
+          "pred": 754,
+          "correct": true
+        },
+        {
+          "pred": 754,
+          "correct": true
+        },
+        {
+          "pred": 754,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "23",
+      "gold": 245,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 245,
+          "correct": true
+        },
+        {
+          "pred": 245,
+          "correct": true
+        },
+        {
+          "pred": 245,
+          "correct": true
+        },
+        {
+          "pred": 245,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "24",
+      "gold": 669,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 669,
+          "correct": true
+        },
+        {
+          "pred": 669,
+          "correct": true
+        },
+        {
+          "pred": 669,
+          "correct": true
+        },
+        {
+          "pred": 669,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "25",
+      "gold": 850,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 850,
+          "correct": true
+        },
+        {
+          "pred": 850,
+          "correct": true
+        },
+        {
+          "pred": 850,
+          "correct": true
+        },
+        {
+          "pred": 850,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "26",
+      "gold": 132,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 132,
+          "correct": true
+        },
+        {
+          "pred": 132,
+          "correct": true
+        },
+        {
+          "pred": 132,
+          "correct": true
+        },
+        {
+          "pred": 132,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "27",
+      "gold": 223,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 223,
+          "correct": true
+        },
+        {
+          "pred": 223,
+          "correct": true
+        },
+        {
+          "pred": 223,
+          "correct": true
+        },
+        {
+          "pred": 223,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "28",
+      "gold": 107,
+      "correct_samples": 4,
+      "samples": [
+        {
+          "pred": 107,
+          "correct": true
+        },
+        {
+          "pred": 107,
+          "correct": true
+        },
+        {
+          "pred": 107,
+          "correct": true
+        },
+        {
+          "pred": 107,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "29",
+      "gold": 157,
+      "correct_samples": 3,
+      "samples": [
+        {
+          "pred": 157,
+          "correct": true
+        },
+        {
+          "pred": 192,
+          "correct": false
+        },
+        {
+          "pred": 157,
+          "correct": true
+        },
+        {
+          "pred": 157,
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "30",
+      "gold": 393,
+      "correct_samples": 0,
+      "samples": [
+        {
+          "pred": 243,
+          "correct": false
+        },
+        {
+          "pred": 259,
+          "correct": false
+        },
+        {
+          "pred": null,
+          "correct": false
+        },
+        {
+          "pred": 143,
+          "correct": false
+        }
+      ]
+    }
+  ],
+  "harness_signature": {
+    "trial_id": "t007_gguf_q4km_imatrix",
+    "engine": "llama.cpp",
+    "timestamp": 1776948829.3244367,
+    "git_sha": "28ea3391232669d01051e23309961e3afd2bdb81",
+    "payload_sha256": "c00d8415e940b61e63ee4b1f2236e2c61431d26f46fcc691de51d2436491ef40",
+    "hmac_sha256": "67513885b241b9d7ef0c15369654856bb83bab552ac68e4bff168b82d97eba22",
+    "version": 1
+  }
+}

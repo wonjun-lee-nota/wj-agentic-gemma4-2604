@@ -1,0 +1,10 @@
+trial_id: t014_gguf_imatrix_attnQ6
+method: gptq
+bit_width: 4
+group_size: 128
+calibration_set: c4
+quant_target: imatrix_q4km_attn_q6k_conservative
+notes: >
+  Strategy M: Conservative approach. imatrix + attention Q6_K (not Q8).
+  Tests if Q6 attention is sufficient vs Q8. Minimal size increase (~15.8GB).
+engine: llama.cpp
