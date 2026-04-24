@@ -1,0 +1,329 @@
+"""AIME 2026 evaluation for t005_torchao_int4.
+
+Dequantizes custom INT4 packed weights back to BF16, loads into the model
+across 4 GPUs, then runs the pinned AIME protocol via model.generate().
+"""
+from __future__ import annotations
+
+import gc
+import json
+import re
+import sys
+import time
+from pathlib import Path
+
+import torch
+import safetensors.torch
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
+
+from harness.common import pinned, signing, trial  # noqa: E402
+
+TRIAL_ID = "t005_torchao_int4"
+MODEL_PATH = "/workspace/gemma-4-26B-A4B-it"
+WEIGHTS_PATH = REPO_ROOT / "trials" / TRIAL_ID / "weights" / "model.safetensors"
+
+
+# ── Dequantization ──────────────────────────────────────────────────────
+
+def dequantize_tensor(packed, scales, zeros, meta):
+    """Dequantize INT4 packed tensor back to BF16.
+
+    meta: [ne, orig_rows, orig_cols, padded_cols, bits, group_size]
+    packed: [total_rows, padded_cols/2] uint8 (two int4 per byte)
+      where total_rows = ne * orig_rows for 3D tensors, or orig_rows for 2D
+    scales: [total_rows, n_groups] bf16
+    zeros: [total_rows, n_groups] uint8
+    """
+    ne, orig_rows, orig_cols, padded_cols, bits, group_size = meta.tolist()
+    total_rows = packed.shape[0]  # ne * orig_rows for 3D, orig_rows for 2D
+    n_groups = padded_cols // group_size
+
+    # Unpack uint8 → two int4 values
+    lo = packed & 0x0F
+    hi = (packed >> 4) & 0x0F
+    # Interleave: [total_rows, packed_cols/2] → [total_rows, padded_cols]
+    unpacked = torch.stack([lo, hi], dim=-1).reshape(total_rows, -1)[:, :padded_cols]
+
+    # Reshape to groups for dequantization
+    unpacked = unpacked.reshape(total_rows, n_groups, group_size).float()
+    s = scales.float().unsqueeze(-1)  # [total_rows, n_groups, 1]
+    z = zeros.float().unsqueeze(-1)   # [total_rows, n_groups, 1]
+
+    # Dequantize: w = (q - zero_point) * scale
+    dequantized = (unpacked - z) * s
+    dequantized = dequantized.reshape(total_rows, -1)[:, :orig_cols]
+
+    # Reshape back to original shape
+    if ne > 1:
+        dequantized = dequantized.reshape(ne, orig_rows, orig_cols)
+
+    return dequantized.to(torch.bfloat16)
+
+
+def load_dequantized_state_dict():
+    """Load and dequantize the t005 INT4 packed weights."""
+    print("[load] Loading packed INT4 weights...")
+    raw = safetensors.torch.load_file(str(WEIGHTS_PATH), device="cpu")
+
+    # Separate packed keys and plain keys
+    base_keys = set()
+    for k in raw.keys():
+        for suffix in [".packed", ".scales", ".zeros", ".meta"]:
+            if k.endswith(suffix):
+                base_keys.add(k[: -len(suffix)])
+                break
+
+    state_dict = {}
+    dequant_count = 0
+
+    for k in sorted(raw.keys()):
+        # Skip sub-keys of packed tensors
+        if any(k.endswith(s) for s in [".packed", ".scales", ".zeros", ".meta"]):
+            continue
+
+        if k in base_keys:
+            # This shouldn't happen (base key shouldn't exist as plain), skip
+            continue
+
+        # Plain tensor — keep as-is
+        state_dict[k] = raw[k]
+
+    # Dequantize packed tensors
+    for base in sorted(base_keys):
+        packed = raw[f"{base}.packed"]
+        scales = raw[f"{base}.scales"]
+        zeros = raw[f"{base}.zeros"]
+        meta = raw[f"{base}.meta"]
+
+        w = dequantize_tensor(packed, scales, zeros, meta)
+        state_dict[base] = w
+        dequant_count += 1
+
+        if dequant_count % 50 == 0:
+            print(f"  Dequantized {dequant_count} tensors...")
+
+    print(f"[load] Dequantized {dequant_count} tensors, {len(state_dict) - dequant_count} plain tensors")
+    del raw
+    gc.collect()
+    return state_dict
+
+
+# ── Extraction (identical to harness/eval/aime_runner.py) ────────────────
+
+_BOXED_MARKERS = ("\\boxed{", "\\fbox{")
+_LAST_INT = re.compile(r"\b\d+\b")
+
+
+def _iter_balanced_boxed(text):
+    out = []
+    i, n = 0, len(text)
+    while i < n:
+        marker_len = 0
+        for m in _BOXED_MARKERS:
+            if text.startswith(m, i):
+                marker_len = len(m)
+                break
+        if marker_len == 0:
+            i += 1
+            continue
+        start = i + marker_len
+        depth, j = 1, start
+        while j < n and depth > 0:
+            if text[j] == "{": depth += 1
+            elif text[j] == "}":
+                depth -= 1
+                if depth == 0: break
+            j += 1
+        if depth == 0:
+            out.append(text[start:j])
+            i = j + 1
+        else:
+            break
+    return out
+
+
+def _to_int_in_range(s, lo, hi):
+    cleaned = re.sub(r"[^\d\-]", "", s)
+    if not cleaned or cleaned in ("-", "--"):
+        return None
+    try:
+        v = int(cleaned)
+    except ValueError:
+        return None
+    return v if lo <= v <= hi else None
+
+
+def extract_answer(text, strict_parsing, answer_range=(0, 999)):
+    lo, hi = answer_range
+    for content in reversed(_iter_balanced_boxed(text)):
+        v = _to_int_in_range(content, lo, hi)
+        if v is not None:
+            return v
+    if strict_parsing:
+        return None
+    last = None
+    for m in _LAST_INT.finditer(text):
+        last = m.group(0)
+    if last is None:
+        return None
+    try:
+        v = int(last)
+    except ValueError:
+        return None
+    return v if lo <= v <= hi else None
+
+
+# ── Main ─────────────────────────────────────────────────────────────────
+
+def main():
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    cfg = pinned.load()["eval"]
+    intent = trial.load_intent(TRIAL_ID)
+    tdir = trial.trial_dir(TRIAL_ID)
+
+    # Load problems
+    problems = json.loads((REPO_ROOT / "harness" / "eval" / "aime_2026.json").read_text())
+
+    # Load tokenizer from original model
+    print("[eval] Loading tokenizer...")
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
+
+    # Load model on CPU first, then inject dequantized weights
+    print("[eval] Loading model structure on CPU...")
+    from accelerate import init_empty_weights, load_checkpoint_and_dispatch
+
+    # Step 1: Load dequantized state dict
+    state_dict = load_dequantized_state_dict()
+
+    # Step 2: Save dequantized weights as a temp safetensors file
+    import tempfile, os
+    tmp_dir = tempfile.mkdtemp(prefix="t005_deq_")
+    tmp_path = os.path.join(tmp_dir, "model.safetensors")
+    print(f"[eval] Saving dequantized weights to {tmp_path}...")
+    safetensors.torch.save_file(state_dict, tmp_path)
+    del state_dict
+    gc.collect()
+
+    # Step 3: Copy config files to tmp dir
+    import shutil
+    for fname in ["config.json", "generation_config.json"]:
+        src = Path(MODEL_PATH) / fname
+        if src.exists():
+            shutil.copy2(src, os.path.join(tmp_dir, fname))
+
+    # Step 4: Load from the temp dir with device_map="auto"
+    print("[eval] Loading dequantized model across 4 GPUs...")
+    model = AutoModelForCausalLM.from_pretrained(
+        tmp_dir,
+        torch_dtype=torch.bfloat16,
+        attn_implementation=cfg["attn_implementation"],
+        device_map="auto",
+    )
+    model.eval()
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    # Cleanup temp
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    print(f"[eval] Model loaded. Device map: {set(str(p.device) for p in model.parameters())}")
+
+    torch.manual_seed(cfg["seed"])
+
+    gen_kwargs = dict(
+        max_new_tokens=cfg["max_tokens"],
+        do_sample=True,
+        temperature=cfg["temperature"],
+        top_p=cfg["top_p"],
+    )
+    if cfg.get("top_k") is not None:
+        gen_kwargs["top_k"] = cfg["top_k"]
+
+    print(f"\n[eval] Starting AIME 2026: {cfg['n_problems']} problems x {cfg['sample_n']} samples")
+    print(f"[eval] Protocol: T={cfg['temperature']}, top_p={cfg['top_p']}, max_tokens={cfg['max_tokens']}")
+
+    per_problem = []
+    total_attempts = cfg["n_problems"] * cfg["sample_n"]
+    total_correct = 0
+
+    prompt_template = cfg["prompt_template"]
+
+    for pi, p in enumerate(problems):
+        print(f"\n[eval] Problem {pi+1}/{len(problems)}: {p['id']} (answer={p['answer']})")
+        user_msg = prompt_template.replace("{problem}", p["problem"])
+        rendered = tokenizer.apply_chat_template(
+            [{"role": "user", "content": user_msg}],
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+        ids = tokenizer(
+            rendered,
+            return_tensors="pt",
+            truncation=True,
+            max_length=cfg["ctx_size"] - cfg["max_tokens"],
+        ).input_ids.to(model.device)
+
+        samples = []
+        problem_correct = 0
+        for si in range(cfg["sample_n"]):
+            t0 = time.time()
+            print(f"  Sample {si+1}/{cfg['sample_n']}...", end=" ", flush=True)
+            with torch.inference_mode():
+                out = model.generate(ids, **gen_kwargs)
+            text = tokenizer.decode(out[0][ids.shape[1]:], skip_special_tokens=True)
+            elapsed = time.time() - t0
+
+            pred = extract_answer(text, strict_parsing=cfg["strict_parsing"])
+            correct = pred is not None and int(pred) == int(p["answer"])
+            if correct:
+                problem_correct += 1
+                total_correct += 1
+            status = "correct" if correct else "wrong"
+            print(f"pred={pred} {status} ({elapsed:.1f}s)")
+            samples.append({"pred": pred, "correct": correct})
+
+        per_problem.append({
+            "id": p["id"],
+            "gold": p["answer"],
+            "correct_samples": problem_correct,
+            "samples": samples,
+        })
+        running_acc = total_correct / ((pi + 1) * cfg["sample_n"])
+        print(f"  Problem score: {problem_correct}/{cfg['sample_n']} | Running accuracy: {running_acc:.1%}")
+
+    accuracy = total_correct / total_attempts
+    gate = pinned.load()["quality_gate"]["aime_2026_no_tools_min"]
+
+    print(f"\n{'='*60}")
+    print(f"[eval] FINAL: {total_correct}/{total_attempts} = {accuracy:.1%}")
+    print(f"[eval] Gate: {'PASS' if accuracy >= gate else 'FAIL'} (threshold: {gate:.1%})")
+    print(f"{'='*60}")
+
+    payload = {
+        "trial_id": TRIAL_ID,
+        "engine": intent.get("engine", "transformers"),
+        "benchmark": "AIME_2026_no_tools",
+        "protocol": cfg["protocol"],
+        "dataset": cfg["dataset"],
+        "pinned": cfg,
+        "n_problems": cfg["n_problems"],
+        "sample_n": cfg["sample_n"],
+        "total_attempts": total_attempts,
+        "total_correct": total_correct,
+        "accuracy": accuracy,
+        "accuracy_percent": accuracy * 100.0,
+        "pass_gate": accuracy >= gate,
+        "gate_threshold": gate,
+        "per_problem": per_problem,
+    }
+    signed = signing.sign_payload(TRIAL_ID, intent.get("engine", "transformers"), payload)
+    out_path = tdir / "eval.json"
+    out_path.write_text(json.dumps(signed, indent=2))
+    print(f"\n[eval] Wrote {out_path}")
+
+
+if __name__ == "__main__":
+    main()

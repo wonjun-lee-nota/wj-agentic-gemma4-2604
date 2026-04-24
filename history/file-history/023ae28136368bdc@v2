@@ -1,0 +1,12 @@
+trial_id: t003_gptq_w4_g128_unfused
+method: gptq
+bit_width: 4
+group_size: 128
+calibration_set: c4
+quant_target: all_linear_including_moe_unfused
+notes: >
+  GPTQ W4 G128 with manually unfused MoE experts. The fused 3D expert
+  tensors are split into individual 2D linear layers before GPTQ quantization,
+  then saved in unfused format. This enables quantizing MoE experts which
+  standard GPTQ/AWQ/NF4 cannot handle due to the fused 3D tensor format.
+engine: transformers

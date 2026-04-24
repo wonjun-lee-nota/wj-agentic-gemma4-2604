@@ -1,0 +1,12 @@
+# Filled by the design agent at session start (R11).
+# Executor updates status/trial_id. Report pipeline blocks on unrun priority-1
+# entries unless status == "skipped" with a non-empty skip_reason.
+
+version: 1
+baseline:
+  trial_id: null
+  aime_2026: null
+
+candidates: []   # design agent populates
+
+phases: []       # design agent populates

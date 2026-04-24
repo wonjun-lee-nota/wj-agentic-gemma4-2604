@@ -1,0 +1,12 @@
+trial_id: t012_gguf_imatrix_attnQ8_edgeQ5
+method: gptq
+bit_width: 4
+group_size: 128
+calibration_set: c4
+quant_target: imatrix_attnQ8_edge_layers_q5q6
+notes: >
+  Strategy N: Position-aware mixed precision. imatrix + attention Q8_0 +
+  first 5 and last 5 layers MoE experts at Q5_K/Q6_K (higher precision),
+  middle 20 layers at default Q4_K. Hypothesis: edge layers are most sensitive
+  in transformer architectures. ~16.7GB.
+engine: llama.cpp

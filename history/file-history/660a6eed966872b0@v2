@@ -1,0 +1,10 @@
+trial_id: t013_gguf_imatrix_attnQ8_edgeK
+method: gptq
+bit_width: 4
+group_size: 128
+calibration_set: c4
+quant_target: imatrix_attnQ8_edge8_layers_q5k
+notes: >
+  Strategy K: imatrix + attention Q8_0 + edge 8 layers (0-3, 26-29) MoE
+  gate_up_exps at Q5_K. Middle 22 layers at default Q4_K. ~16-17GB.
+engine: llama.cpp

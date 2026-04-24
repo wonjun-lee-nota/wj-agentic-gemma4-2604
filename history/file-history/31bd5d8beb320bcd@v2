@@ -1,0 +1,58 @@
+#!/bin/bash
+# Run t007 and t009 AIME evaluations sequentially
+# Each: start server → wait ready → run eval → stop server
+
+set -e
+REPO=/workspace/wj-agentic-gemma4-2604
+LLAMA_SERVER=/workspace/llama.cpp/build/bin/llama-server
+export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+
+run_trial() {
+    local trial=$1
+    local model_path=$2
+
+    echo "============================================"
+    echo "[run] Starting $trial"
+    echo "============================================"
+
+    # Kill any existing server
+    fuser -k 8080/tcp 2>/dev/null || true
+    sleep 3
+
+    # Start server
+    CUDA_VISIBLE_DEVICES=0,1,2,3 \
+      nohup $LLAMA_SERVER \
+      --model "$model_path" \
+      --port 8080 --n-gpu-layers 999 --ctx-size 72000 --host 127.0.0.1 \
+      > /tmp/llama-server.log 2>&1 &
+
+    # Wait for server ready
+    echo "[run] Waiting for server..."
+    for i in $(seq 1 120); do
+        if curl -s http://127.0.0.1:8080/health 2>/dev/null | grep -q "ok"; then
+            echo "[run] Server ready after ${i}s"
+            break
+        fi
+        sleep 3
+    done
+
+    # Run eval
+    echo "[run] Running AIME eval for $trial"
+    cd $REPO
+    python3 "trials/$trial/run_aime_eval.py"
+
+    echo "[run] $trial complete!"
+    echo ""
+}
+
+run_trial "t007_gguf_q4km_imatrix" \
+    "$REPO/trials/t007_gguf_q4km_imatrix/weights/gemma4-26b-q4_k_m-imatrix.gguf"
+
+run_trial "t009_gguf_q5km" \
+    "$REPO/trials/t009_gguf_q5km/weights/gemma4-26b-q5_k_m.gguf"
+
+# Cleanup
+fuser -k 8080/tcp 2>/dev/null || true
+echo "============================================"
+echo "[run] ALL DONE"
+echo "============================================"

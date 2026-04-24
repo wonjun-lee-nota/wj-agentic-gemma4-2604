@@ -1,0 +1,11 @@
+trial_id: t010_gguf_imatrix_attnQ8
+method: gptq
+bit_width: 4
+group_size: 128
+calibration_set: c4
+quant_target: imatrix_q4km_with_attention_q8
+notes: >
+  Strategy J: Combines t007 (imatrix Q4_K_M, 89.2%) and t008 (attn=Q8, 88.3%).
+  imatrix calibration for optimal weight allocation + attention at Q8_0 for
+  multi-step reasoning precision. Expected ~16GB.
+engine: llama.cpp

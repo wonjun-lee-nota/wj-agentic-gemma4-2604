@@ -1,0 +1,12 @@
+trial_id: t006_gguf_q4km
+method: gptq
+bit_width: 4
+group_size: 128
+calibration_set: null
+quant_target: all_params_via_gguf_q4_k_m
+notes: >
+  Convert HF model to GGUF format using llama.cpp's convert script, then
+  quantize to Q4_K_M. GGUF natively handles MoE expert layers by treating
+  each expert as a separate tensor. vLLM supports loading GGUF models via
+  quantization="gguf".
+engine: vllm
